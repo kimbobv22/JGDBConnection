@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!ELEMENT queryset query*>
+<!ELEMENT query (#PCDATA+ | isnotnull* | isequals*)>
+
+<!ELEMENT isnotnull #PCDATA+>
+<!ELEMENT isequals #PCDATA+>
+
+<!ATTLIST queryset keyName CDATA #REQUIRED>
+<!ATTLIST query keyName CDATA #REQUIRED>
+
+<!ATTLIST isnotnull columnName CDATA #REQUIRED>
+<!ATTLIST isnotnull isReverse CDATA #IMPLIED>
+
+<!ATTLIST isequals columnName CDATA #REQUIRED>
+<!ATTLIST isequals columnValue CDATA #REQUIRED>
+<!ATTLIST isequals isReverse CDATA #IMPLIED>
