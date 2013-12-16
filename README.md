@@ -25,6 +25,7 @@
 [com.jg.db.xml.cond.JGDBXMLQueryConditionDef](#com.jg.db.xml.cond.JGDBXMLQueryConditionDef)<Br>
 [com.jg.db.xml.cond.JGDBXMLQueryConditionIsEquals](#com.jg.db.xml.cond.JGDBXMLQueryConditionIsEquals)<Br>
 [com.jg.db.xml.cond.JGDBXMLQueryConditionIsNotNull](#com.jg.db.xml.cond.JGDBXMLQueryConditionIsEquals)<Br>
+[com.jg.db.xml.cond.JGDBXMLQueryConditionIsNotBlank](#com.jg.db.xml.cond.JGDBXMLQueryConditionIsEquals)<Br>
 
 #Documents
 
@@ -130,6 +131,13 @@ __*키값이 중복되면 해석순서에 따라 병합됩니다.__
 		AND   COL1 = #{testValue}
 		AND   COL2 = #{testValue,false}
 		</isequals>
+		
+		쿼리생성 시, 해당 매개변수나 열값의 길이가 0보다 클 경우 아래 구문이 포함됩니다.
+		isReverse는 생략가능하며 true 일 경우 조건이 반전됩니다.
+		<isnotblank columnName="매개변수명 or 열명" [isReverse="[true | false]"] >
+		AND   COL1 = #{testValue}
+		AND   COL2 = #{testValue,false}
+		</isnotblank>
 	
 	</query>
 	
@@ -460,7 +468,7 @@ JGDataset을 이용하여 XML질의를 질의로 생성할 수 있습니다.
 
 
 <a name="com.jg.db.xml.cond.JGDBXMLQueryConditionIsEquals"></a>
-##com.jg.db.xml.cond.JGDBXMLQueryConditionIsEquals<br>com.jg.db.xml.cond.JGDBXMLQueryConditionIsNotNull
+##com.jg.db.xml.cond.JGDBXMLQueryConditionIsEquals<br>com.jg.db.xml.cond.JGDBXMLQueryConditionIsNotNull<br>com.jg.db.xml.cond.JGDBXMLQueryConditionIsNotBlank
 
 라이브러리에서 제공하는 기본적인 조건여과클래스입니다.<br>
 XML조건절 작성에 대한 자세한 내용은 [여기](#howToWriteXMLCondition)를 참조하세요.

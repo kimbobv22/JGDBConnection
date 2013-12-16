@@ -3,6 +3,7 @@
 <!ELEMENT query (#PCDATA+ | isnotnull* | isequals*)>
 
 <!ELEMENT isnotnull #PCDATA+>
+<!ELEMENT isnotblank #PCDATA+>
 <!ELEMENT isequals #PCDATA+>
 
 <!ATTLIST queryset keyName CDATA #REQUIRED>
@@ -10,6 +11,9 @@
 
 <!ATTLIST isnotnull columnName CDATA #REQUIRED>
 <!ATTLIST isnotnull isReverse CDATA #IMPLIED>
+
+<!ATTLIST isnotblank columnName CDATA #REQUIRED>
+<!ATTLIST isnotblank isReverse CDATA #IMPLIED>
 
 <!ATTLIST isequals columnName CDATA #REQUIRED>
 <!ATTLIST isequals columnValue CDATA #REQUIRED>
