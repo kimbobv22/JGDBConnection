@@ -70,6 +70,14 @@ public class JGDBConnection{
 		_defaultResultSetConcurrency = resultSetConcurrency_;
 	}
 	
+	protected JGDBBLOBHandler _blobHandler = null;
+	public JGDBBLOBHandler blobHandler(){
+		if(_blobHandler == null){
+			_blobHandler = new JGDBBLOBHandler(this);
+		}
+		
+		return _blobHandler;
+	}
 	
 	/**
 	 * database connection instance<br>
@@ -186,95 +194,103 @@ public class JGDBConnection{
 	}
 	
 	public JGDataset executeQuery(String query_, Object[] objects_, int resultSetType_, int resultSetConcurrency_) throws Exception{
-		PreparedStatement pStatement_ = createStatement(query_,objects_, resultSetType_, resultSetConcurrency_);
-		
+		PreparedStatement pStatement_ = null;
 		ResultSet resultSet_ = null;
-		try{
-			_loggingDef.beforeExecuteQuery(query_, objects_);
-			resultSet_ = pStatement_.executeQuery();
-		}catch(SQLException ex_){
-			throw new Exception("failed to execute query", ex_);
-		}
 		
-		JGDataset dataSet_ = new JGDataset();
-		ResultSetMetaData resultSetMetaData_ = null;
-		int columnCount_ = 0;
 		try{
-			//for search columns
-			resultSetMetaData_ = resultSet_.getMetaData();
-			columnCount_ = resultSetMetaData_.getColumnCount();
-			for(int columnIndex_=0;columnIndex_<columnCount_;++columnIndex_){
-				int rColumnIndex_ = columnIndex_+1;
-				String columnLabel_ = resultSetMetaData_.getColumnLabel(rColumnIndex_);
-				if(columnLabel_ == null || columnLabel_.length() == 0)
-					columnLabel_ = resultSetMetaData_.getColumnName(rColumnIndex_);
-				dataSet_.addColumn(columnLabel_);
+			try{
+				_loggingDef.beforeExecuteQuery(query_, objects_);
+				pStatement_ = createStatement(query_,objects_, resultSetType_, resultSetConcurrency_);
+				resultSet_ = pStatement_.executeQuery();
+			}catch(SQLException ex_){
+				throw new Exception("failed to execute query", ex_);
 			}
-		}catch(SQLException ex_){
-			throw new Exception("failed to add column to dataset from resultSet metadata", ex_);
-		}
-		
-		try{
 			
-			String characterEncoding_ = _DBConfig._characterEncoding;
-			while(resultSet_.next()){
-				int rowIndex_ = dataSet_.addRow();
-				
+			JGDataset dataSet_ = new JGDataset();
+			ResultSetMetaData resultSetMetaData_ = null;
+			int columnCount_ = 0;
+			try{
+				//for search columns
+				resultSetMetaData_ = resultSet_.getMetaData();
+				columnCount_ = resultSetMetaData_.getColumnCount();
 				for(int columnIndex_=0;columnIndex_<columnCount_;++columnIndex_){
 					int rColumnIndex_ = columnIndex_+1;
-					int dbColumnType_ = resultSetMetaData_.getColumnType(rColumnIndex_);
+					String columnLabel_ = resultSetMetaData_.getColumnLabel(rColumnIndex_);
+					if(columnLabel_ == null || columnLabel_.length() == 0)
+						columnLabel_ = resultSetMetaData_.getColumnName(rColumnIndex_);
+					dataSet_.addColumn(columnLabel_);
+				}
+			}catch(SQLException ex_){
+				throw new Exception("failed to add column to dataset from resultSet metadata", ex_);
+			}
+			
+			try{
+				
+				String characterEncoding_ = _DBConfig._characterEncoding;
+				while(resultSet_.next()){
+					int rowIndex_ = dataSet_.addRow();
 					
-					switch(dbColumnType_){
-						case Types.NUMERIC:
-						case Types.INTEGER:
-						case Types.BIGINT:
-						case Types.FLOAT:
-						case Types.DOUBLE:
-						case Types.DECIMAL:
-						case Types.CHAR:
-						case Types.VARCHAR:
-						case Types.BOOLEAN:
-							dataSet_.setColumnValue(columnIndex_, rowIndex_, resultSet_.getObject(rColumnIndex_));
-							break;
-						case Types.DATE:
-						case Types.TIMESTAMP:
-							java.sql.Date dateValue_ = resultSet_.getDate(rColumnIndex_);
-							if(dateValue_ != null)
-								dataSet_.setColumnValue(columnIndex_, rowIndex_, dateValue_.toString());
-						case Types.TIME:
-							break;
-						case Types.LONGNVARCHAR:
-						case Types.LONGVARBINARY:
-						case Types.LONGVARCHAR:
-						case Types.CLOB:
-						case Types.BLOB:
-						case Types.BINARY:
-						case Types.BIT:
-							try{
-								dataSet_.setColumnValue(columnIndex_, rowIndex_, new String(resultSet_.getBytes(rColumnIndex_),characterEncoding_));
-							}catch(UnsupportedEncodingException ex_){
-								throw new Exception("failed to convert byte to string", ex_);
-							}
-							
-							break;
-						default : break;
+					for(int columnIndex_=0;columnIndex_<columnCount_;++columnIndex_){
+						int rColumnIndex_ = columnIndex_+1;
+						int dbColumnType_ = resultSetMetaData_.getColumnType(rColumnIndex_);
+						
+						switch(dbColumnType_){
+							case Types.NUMERIC:
+							case Types.INTEGER:
+							case Types.BIGINT:
+							case Types.FLOAT:
+							case Types.DOUBLE:
+							case Types.DECIMAL:
+							case Types.CHAR:
+							case Types.VARCHAR:
+							case Types.BOOLEAN:
+								dataSet_.setColumnValue(columnIndex_, rowIndex_, resultSet_.getObject(rColumnIndex_));
+								break;
+							case Types.DATE:
+							case Types.TIMESTAMP:
+								java.sql.Date dateValue_ = resultSet_.getDate(rColumnIndex_);
+								if(dateValue_ != null)
+									dataSet_.setColumnValue(columnIndex_, rowIndex_, dateValue_.toString());
+							case Types.TIME:
+								break;
+							case Types.LONGNVARCHAR:
+							case Types.LONGVARBINARY:
+							case Types.LONGVARCHAR:
+							case Types.CLOB:
+							case Types.BLOB:
+							case Types.BINARY:
+							case Types.BIT:
+								try{
+									dataSet_.setColumnValue(columnIndex_, rowIndex_, new String(resultSet_.getBytes(rColumnIndex_),characterEncoding_));
+								}catch(UnsupportedEncodingException ex_){
+									throw new Exception("failed to convert byte to string", ex_);
+								}
+								
+								break;
+							default : break;
+						}
 					}
 				}
+			}catch(SQLException ex_){
+				throw new Exception("failed to add row to dataset from resultSet row data", ex_);
 			}
-		}catch(SQLException ex_){
-			throw new Exception("failed to add row to dataset from resultSet row data", ex_);
+			
+			dataSet_.apply();
+			
+			try{
+				resultSet_.close();
+				pStatement_.close();
+			}catch(SQLException ex_){
+				throw new Exception("failed to close row statment,resultSet", ex_);
+			}
+			
+			return dataSet_;
+		}catch(Exception ex_){
+			throw ex_;
+		}finally{
+			if(pStatement_ != null) pStatement_.close();
+			if(resultSet_ != null) resultSet_.close();
 		}
-		
-		dataSet_.apply();
-		
-		try{
-			resultSet_.close();
-			pStatement_.close();
-		}catch(SQLException ex_){
-			throw new Exception("failed to close row statment,resultSet", ex_);
-		}
-		
-		return dataSet_;
 	}
 	public JGDataset executeQuery(String query_, Object[] objects_, int resultSetType_) throws Exception{
 		return executeQuery(query_,objects_, resultSetType_, _defaultResultSetConcurrency);
@@ -321,19 +337,16 @@ public class JGDBConnection{
 	}
 	
 	public int executeUpdate(String query_, Object[] objects_) throws Exception{
-		PreparedStatement pStatement_ = createStatement(query_, objects_);
+		PreparedStatement pStatement_ = null;
 		int result_ = 0;
 		try{
 			_loggingDef.beforeExecuteUpdate(query_, objects_);
+			pStatement_ = createStatement(query_, objects_);
 			result_ = pStatement_.executeUpdate();
 		}catch(SQLException ex_){
 			throw new Exception("failed to executeUpdate query" ,ex_);
-		}
-		
-		try{
-			pStatement_.close();
-		}catch(SQLException ex_){
-			throw new Exception("failed to close statement" ,ex_);
+		}finally{
+			if(pStatement_ != null) pStatement_.close();
 		}
 		
 		return result_;
