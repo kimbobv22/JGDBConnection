@@ -14,7 +14,11 @@ import com.jg.db.vo.JGDBQuery;
 import com.jg.db.xml.cond.JGDBXMLQueryConditionDef;
 import com.jg.vo.JGDataset;
 
-
+/**
+ * XML로 적재된 조건적 문장을 해석하여 쿼리로 생성합니다.
+ * 
+ * @author Hyeong yeon. Kim. kimbobv22@gmail.com
+ */
 public class JGDBXMLQuery{
 	protected Element _queryElement = null;
 	public Element getQueryElement(){
@@ -111,6 +115,15 @@ public class JGDBXMLQuery{
 		return queryStr_;
 	}
 	
+	/**
+	 * 데이타셋의 특정 행 데이타를 통해 {@link JGDBQuery}를 생성합니다.
+	 * 
+	 * @param dataset_ 데이타셋
+	 * @param rowIndex_ 행색인
+	 * @return 쿼리
+	 * @see JGDBQuery
+	 * @see JGDataset
+	 */
 	public JGDBQuery createQuery(JGDataset dataset_, int rowIndex_) throws Exception{
 		JGDBQuery query_ = new JGDBQuery();
 		
@@ -147,19 +160,24 @@ public class JGDBXMLQuery{
 		return query_;
 	}
 	
-	public JGDBQuery createQuery(JGDataset dataSet_) throws Exception{
-		return createQuery(dataSet_, 0);
-	}
-	
-	public JGDBQuery createQuery() throws Exception{
-		return createQuery(new Object[]{});
+	/**
+	 * 데이타셋의 첫번째 행 데이타를 통해 {@link JGDBQuery}를 생성합니다.
+	 * 
+	 * @param dataset_ 데이타셋
+	 * @return 쿼리
+	 * @see JGDBQuery
+	 * @see JGDataset
+	 */
+	public JGDBQuery createQuery(JGDataset dataset_) throws Exception{
+		return createQuery(dataset_, 0);
 	}
 	
 	/**
+	 * 열과 열값의 배열, 키열 배열을 통해 {@link JGDBQuery}를 생성합니다.
 	 * 
-	 * @param columnNamesAndValues_ ({"key1", value1, "key2", value2,...})
-	 * @param keyColumns_ ({"key1","key2",...})
-	 * @return
+	 * @param columnNamesAndValues_ {"열명1", 열값1, "열명2", 열값2,...}
+	 * @param keyColumns_ {"키열명1","키열명2",...}
+	 * @return 쿼리
 	 */
 	public JGDBQuery createQuery(Object[] columnNamesAndValues_, String[] keyColumns_) throws Exception{
 		JGDataset condDataset_ = new JGDataset();
@@ -185,11 +203,15 @@ public class JGDBXMLQuery{
 	}
 	
 	/**
+	 * 열과 열값의 배열을 통해 {@link JGDBQuery}를 생성합니다.
 	 * 
-	 * @param columnNamesAndValues_ ({"key1", value1, "key2", value2,...})
-	 * @return {@link JGDBXMLQuery}
+	 * @param columnNamesAndValues_ {"열명1", 열값1, "열명2", 열값2,...}
+	 * @return 쿼리
 	 */
 	public JGDBQuery createQuery(Object[] columnNamesAndValues_) throws Exception{
 		return createQuery(columnNamesAndValues_, null);
+	}
+	public JGDBQuery createQuery() throws Exception{
+		return createQuery(new Object[]{});
 	}
 }

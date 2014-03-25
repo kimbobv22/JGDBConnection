@@ -11,15 +11,29 @@ import org.jdom.JDOMException;
 import org.jdom.input.SAXBuilder;
 
 import com.jg.db.JGDBKeyword;
+import com.jg.db.vo.JGDBQuery;
 
+/**
+ * {@link JGDBQuery}를 적재를 위한 객체입니다.
+ * 
+ * @author Hyeong yeon. Kim. kimbobv22@gmail.com
+ */
 public class JGDBXMLQuerySet {
 	
 	protected String _keyName = null;
+	/**
+	 * 키명을 반환합니다.
+	 * @return 키명
+	 */
 	public String getKeyName(){
 		return _keyName;
 	}
 	
 	protected ArrayList<JGDBXMLQuery> _queryList = new ArrayList<JGDBXMLQuery>();
+	/**
+	 * 적재된 XML쿼리의 갯수를 반환합니다.
+	 * @return XML쿼리의 갯수
+	 */
 	public int countOfQuery(){
 		return _queryList.size();
 	}
@@ -52,13 +66,30 @@ public class JGDBXMLQuerySet {
 		removeQuery(indexOfQuery(keyName_));
 	}
 	
+	/**
+	 * 특정 색인의 XML쿼리를 반환합니다.
+	 * 
+	 * @param index_ 색인
+	 * @return XML쿼리
+	 */
 	public JGDBXMLQuery getQuery(int index_){
 		return _queryList.get(index_);
 	}
+	/**
+	 * 특정 키명의 XML쿼리를 반환합니다.
+	 * 
+	 * @param keyName_ XML쿼리 키명
+	 * @return XML쿼리
+	 */
 	public JGDBXMLQuery getQuery(String keyName_){
 		return _queryList.get(indexOfQuery(keyName_));
 	}
-	
+	/**
+	 * 특정 키명으로 XML쿼리의 색인을 반환합니다.
+	 * 
+	 * @param keyName_ XML쿼리 키명
+	 * @return 색인
+	 */
 	public int indexOfQuery(String keyName_){
 		int queryCount_ = _queryList.size();
 		for(int index_=0;index_<queryCount_;++index_){

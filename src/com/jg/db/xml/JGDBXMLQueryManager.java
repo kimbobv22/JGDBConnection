@@ -15,34 +15,72 @@ import com.jg.db.xml.cond.JGDBXMLQueryConditionIsNotBlank;
 import com.jg.db.xml.cond.JGDBXMLQueryConditionIsNotNull;
 import com.jg.vo.JGDataset;
 
-
+/**
+ * XML로 해석하여 {@link JGDBXMLQuery}를 메모리에 적재,관리합니다.
+ * 
+ * @author Hyeong yeon. Kim. kimbobv22@gmail.com
+ */
 public class JGDBXMLQueryManager {
 	static private JGDBXMLQueryManager _sharedQueryManager_ = null;
 	
 	static protected String _XMLDirectoryPath = null;
+	/**
+	 * XML 디렉터리 경로를 반환합니다.
+	 * @return XML 디렉토리 경로
+	 */
 	static public String getXMLDirectoryPath(){
 		return _XMLDirectoryPath;
 	}
+	/**
+	 * XML 디렉터리 경로를 설정합니다.
+	 * @param path_ XML 디렉토리 경로
+	 */
 	static public void setXMLDirectoryPath(String path_){
 		_XMLDirectoryPath = path_;
 	}
 	
 	protected HashMap<String, JGDBXMLQuerySet> _querySetList = new HashMap<String, JGDBXMLQuerySet>();
+	/**
+	 * XML쿼리셋의 갯수를 반환합니다.
+	 * @return XML쿼리셋의 갯수
+	 */
 	public int countOfQuerySet(){
 		return _querySetList.size();
 	}
 	
 	protected HashMap<String, JGDBXMLQueryConditionDef> _conditionDefs = new HashMap<String, JGDBXMLQueryConditionDef>();
+	/**
+	 * 조건정의객체의 갯수를 반환합니다.
+	 * @return 조건정의객체의 갯수
+	 */
 	public int countOfConditionDef(){
 		return _conditionDefs.size();
 	}
+	/**
+	 * 조건정의객체를 반환합니다.
+	 * 
+	 * @param keyName_ 키명
+	 * @return 조건정의객체
+	 */
 	public JGDBXMLQueryConditionDef getConditionDef(String keyName_){
 		return _conditionDefs.get(keyName_.toLowerCase());
 	}
+	/**
+	 * 조건정의객체를 설정합니다.
+	 * 
+	 * @param keyName_ 키명
+	 * @param conditionDef_ 조건정의객체
+	 */
 	public void putConditionDef(String keyName_, JGDBXMLQueryConditionDef conditionDef_){
 		_conditionDefs.put(keyName_.toLowerCase(), conditionDef_);
 	}
 	
+	/**
+	 * {@link JGDBXMLQueryManager}의 공유 인스턴스를 반환합니다.<br>
+	 * ({@link JGDBXMLQueryManager}는 싱글톤으로 설계되었습니다.)
+	 * 
+	 * @return 공유 인스턴스
+	 */
 	static public JGDBXMLQueryManager sharedManager(){
 		if(_sharedQueryManager_ == null){
 			synchronized(JGDBXMLQueryManager.class){
@@ -95,6 +133,9 @@ public class JGDBXMLQueryManager {
 		putConditionDef(JGDBKeyword.STR_ELEMENT_ISCOLUMNEQUALS, new JGDBXMLQueryConditionIsColumnEquals());
 	}
 	
+	/**
+	 * XML을 재파싱하여 재적재합니다.
+	 */
 	public void reload() throws Exception{
 		_querySetList.clear();
 		
@@ -123,10 +164,20 @@ public class JGDBXMLQueryManager {
 			_querySetList.put(querySet_._keyName, querySet_);
 		}
 	}
-	
+	/**
+	 * XML쿼리셋을 반환합니다.
+	 * @param keyName_ 키명
+	 * @return XML쿼리셋
+	 */
 	public JGDBXMLQuerySet getQuerySet(String keyName_){
 		return _querySetList.get(keyName_);
 	}
+	/**
+	 * XML쿼리를 반환합니다.
+	 * @param querySetKeyName_ XML쿼리셋 키명
+	 * @param queryKeyName_ XML쿼리 키명
+	 * @return XML쿼리
+	 */
 	public JGDBXMLQuery getQuery(String querySetKeyName_, String queryKeyName_){
 		JGDBXMLQuerySet querySet_ = getQuerySet(querySetKeyName_);
 		if(querySet_ == null){
@@ -135,9 +186,6 @@ public class JGDBXMLQueryManager {
 		return querySet_.getQuery(queryKeyName_);
 	}
 	
-	/**
-	 * redirect method
-	 */
 	public JGDBQuery createQuery(String querySetKeyName_, String queryKeyName_, JGDataset dataset_, int rowIndex_) throws Exception{
 		return getQuery(querySetKeyName_, queryKeyName_).createQuery(dataset_, rowIndex_);
 	}
