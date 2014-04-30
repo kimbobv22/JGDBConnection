@@ -85,7 +85,8 @@ public class JGDBXMLQueryManager {
 		if(_sharedQueryManager_ == null){
 			synchronized(JGDBXMLQueryManager.class){
 				try{
-					_sharedQueryManager_ = new JGDBXMLQueryManager();
+					if(_sharedQueryManager_ == null)
+						_sharedQueryManager_ = new JGDBXMLQueryManager();
 				}catch(Exception ex_){
 					_sharedQueryManager_ = null;
 					System.out.println("can't not load JGDBXMLQueryManager");
