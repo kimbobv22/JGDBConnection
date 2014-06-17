@@ -634,6 +634,7 @@ public class JGDBConnection{
 		}
 		
 		JGDataset dataset_ = null;
+		int updateCount_ = statement_.getUpdateCount();
 		try{
 			if(isExistsResult_){
 				dataset_ = JGDBUtils.convertToDataset(statement_.getResultSet(), _DBConfig._characterEncoding);
@@ -645,7 +646,7 @@ public class JGDBConnection{
 			if(statement_ != null) statement_.close();
 		}
 		
-		return new JGDBProcedureResult(isExistsResult_, statement_.getUpdateCount(), dataset_);
+		return new JGDBProcedureResult(isExistsResult_, updateCount_, dataset_);
 	}
 	/**
 	 * 프로시져를 호출합니다.
