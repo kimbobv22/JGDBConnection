@@ -2,15 +2,12 @@ package com.jg.db;
 
 import java.io.InputStream;
 import java.io.Reader;
-import java.io.UnsupportedEncodingException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.util.ArrayList;
 
 import com.jg.db.vo.JGDBParameter;
@@ -324,85 +321,7 @@ public class JGDBConnection{
 				throw new Exception("failed to execute query", ex_);
 			}
 			
-			JGDataset dataSet_ = new JGDataset();
-			ResultSetMetaData resultSetMetaData_ = null;
-			int columnCount_ = 0;
-			try{
-				//for search columns
-				resultSetMetaData_ = resultSet_.getMetaData();
-				columnCount_ = resultSetMetaData_.getColumnCount();
-				for(int columnIndex_=0;columnIndex_<columnCount_;++columnIndex_){
-					int rColumnIndex_ = columnIndex_+1;
-					String columnLabel_ = resultSetMetaData_.getColumnLabel(rColumnIndex_);
-					if(columnLabel_ == null || columnLabel_.length() == 0)
-						columnLabel_ = resultSetMetaData_.getColumnName(rColumnIndex_);
-					dataSet_.addColumn(columnLabel_);
-				}
-			}catch(SQLException ex_){
-				throw new Exception("failed to add column to dataset from resultSet metadata", ex_);
-			}
-			
-			try{
-				
-				String characterEncoding_ = _DBConfig._characterEncoding;
-				while(resultSet_.next()){
-					int rowIndex_ = dataSet_.addRow();
-					
-					for(int columnIndex_=0;columnIndex_<columnCount_;++columnIndex_){
-						int rColumnIndex_ = columnIndex_+1;
-						int dbColumnType_ = resultSetMetaData_.getColumnType(rColumnIndex_);
-						
-						switch(dbColumnType_){
-							case Types.NUMERIC:
-							case Types.INTEGER:
-							case Types.BIGINT:
-							case Types.FLOAT:
-							case Types.DOUBLE:
-							case Types.DECIMAL:
-							case Types.CHAR:
-							case Types.VARCHAR:
-							case Types.BOOLEAN:
-								dataSet_.setColumnValue(columnIndex_, rowIndex_, resultSet_.getObject(rColumnIndex_));
-								break;
-							case Types.DATE:
-							case Types.TIMESTAMP:
-								java.sql.Date dateValue_ = resultSet_.getDate(rColumnIndex_);
-								if(dateValue_ != null)
-									dataSet_.setColumnValue(columnIndex_, rowIndex_, dateValue_.toString());
-							case Types.TIME:
-								break;
-							case Types.LONGNVARCHAR:
-							case Types.LONGVARBINARY:
-							case Types.LONGVARCHAR:
-							case Types.CLOB:
-							case Types.BLOB:
-							case Types.BINARY:
-							case Types.BIT:
-								try{
-									dataSet_.setColumnValue(columnIndex_, rowIndex_, new String(resultSet_.getBytes(rColumnIndex_),characterEncoding_));
-								}catch(UnsupportedEncodingException ex_){
-									throw new Exception("failed to convert byte to string", ex_);
-								}
-								
-								break;
-							default : break;
-						}
-					}
-				}
-			}catch(SQLException ex_){
-				throw new Exception("failed to add row to dataset from resultSet row data", ex_);
-			}
-			
-			dataSet_.apply();
-			
-			try{
-				resultSet_.close();
-				pStatement_.close();
-			}catch(SQLException ex_){
-				throw new Exception("failed to close row statment,resultSet", ex_);
-			}
-			
-			return dataSet_;
+			return JGDBUtils.convertToDataset(resultSet_, _DBConfig._characterEncoding);
 		}catch(Exception ex_){
 			throw ex_;
 		}finally{
@@ -670,6 +589,29 @@ public class JGDBConnection{
 	public int executeUpdate(JGDataset dataSet_, String tableName_) throws Exception{
 		return executeUpdate(dataSet_, tableName_, false);
 	}
+	
+	public class JGDBProcedureResult{
+		protected final boolean _existsResult;
+		protected final int _updateCount;
+		protected final JGDataset _result;
+		
+		protected JGDBProcedureResult(boolean existsResult_, int updateCount_, JGDataset result_){
+			_existsResult = existsResult_;
+			_updateCount = updateCount_;
+			_result = result_;
+		}
+		
+		public boolean isExistsResult(){
+			return _existsResult;
+		}
+		public int getUpdateCount(){
+			return _updateCount;
+		}
+		public JGDataset getResult(){
+			return _result;
+		}
+	}
+	
 	/**
 	 * 프로시져를 호출합니다.
 	 * 
@@ -677,25 +619,33 @@ public class JGDBConnection{
 	 * @param parameters_ 쿼리 매개변수
 	 * @param resultSetType_ {@link ResultSet}유형
 	 * @param resultSetConcurrency_ {@link ResultSet}동시성
-	 * @return 성공여부
+	 * @return JGDBProcedureResult 프로시져결과
 	 */
-	public boolean callProcedure(String query_, Object[] parameters_, int resultSetType_, int resultSetConcurrency_) throws Exception{
+	public JGDBProcedureResult callProcedure(String query_, Object[] parameters_, int resultSetType_, int resultSetConcurrency_) throws Exception{
 		CallableStatement statement_ = createCallableStatement(query_, parameters_, resultSetType_, resultSetConcurrency_);
-		boolean result_ = false;
+		ResultSet resultSet_ = null;
+		boolean isExistsResult_ = false;
 		try{
 			_loggingDef.beforeCallProcedure(query_, parameters_);
-			result_ = statement_.execute();
+			isExistsResult_ = statement_.execute();
 		}catch(SQLException ex_){
+			if(statement_ != null) statement_.close();
 			throw new Exception("failed to execute procedure", ex_);
 		}
 		
+		JGDataset dataset_ = null;
 		try{
-			statement_.close();
-		}catch(SQLException ex_){
-			throw new Exception("failed to close statement", ex_);
+			if(isExistsResult_){
+				dataset_ = JGDBUtils.convertToDataset(statement_.getResultSet(), _DBConfig._characterEncoding);
+			}
+		}catch(Exception ex_){
+			throw new Exception("failed to pull result", ex_);
+		}finally{
+			if(resultSet_ != null) resultSet_.close();
+			if(statement_ != null) statement_.close();
 		}
 		
-		return result_ ;
+		return new JGDBProcedureResult(isExistsResult_, statement_.getUpdateCount(), dataset_);
 	}
 	/**
 	 * 프로시져를 호출합니다.
@@ -703,9 +653,9 @@ public class JGDBConnection{
 	 * @param query_ 쿼리 문자열
 	 * @param parameters_ 쿼리 매개변수
 	 * @param resultSetType_ {@link ResultSet}유형
-	 * @return 성공여부
+	 * @return JGDBProcedureResult 프로시져결과
 	 */
-	public boolean callProcedure(String query_, Object[] parameters_, int resultSetType_) throws Exception{
+	public JGDBProcedureResult callProcedure(String query_, Object[] parameters_, int resultSetType_) throws Exception{
 		return callProcedure(query_, parameters_, resultSetType_, _defaultResultSetConcurrency);
 	}
 	/**
@@ -713,18 +663,18 @@ public class JGDBConnection{
 	 * 
 	 * @param query_ 쿼리 문자열
 	 * @param parameters_ 쿼리 매개변수
-	 * @return 성공여부
+	 * @return JGDBProcedureResult 프로시져결과
 	 */
-	public boolean callProcedure(String query_, Object[] parameters_) throws Exception{
+	public JGDBProcedureResult callProcedure(String query_, Object[] parameters_) throws Exception{
 		return callProcedure(query_, parameters_, _defaultResultSetType);
 	}
 	/**
 	 * 프로시져를 호출합니다.
 	 * 
 	 * @param query_ 쿼리 문자열
-	 * @return 성공여부
+	 * @return JGDBProcedureResult 프로시져결과
 	 */
-	public boolean callProcedure(String query_) throws Exception{
+	public JGDBProcedureResult callProcedure(String query_) throws Exception{
 		return callProcedure(query_, (Object[])null);
 	}
 	
@@ -734,9 +684,9 @@ public class JGDBConnection{
 	 * @param query_ 쿼리
 	 * @param resultSetType_ {@link ResultSet}유형
 	 * @param resultSetConcurrency_ {@link ResultSet}동시성
-	 * @return 성공여부
+	 * @return JGDBProcedureResult 프로시져결과
 	 */
-	public boolean callProcedure(JGDBQuery query_, int resultSetType_, int resultSetConcurrency_) throws Exception{
+	public JGDBProcedureResult callProcedure(JGDBQuery query_, int resultSetType_, int resultSetConcurrency_) throws Exception{
 		return callProcedure(query_.getQuery(), query_.parameterToArray(), resultSetType_, resultSetConcurrency_);
 	}
 	/**
@@ -744,18 +694,18 @@ public class JGDBConnection{
 	 * 
 	 * @param query_ 쿼리
 	 * @param resultSetType_ {@link ResultSet}유형
-	 * @return 성공여부
+	 * @return JGDBProcedureResult 프로시져결과
 	 */
-	public boolean callProcedure(JGDBQuery query_, int resultSetType_) throws Exception{
+	public JGDBProcedureResult callProcedure(JGDBQuery query_, int resultSetType_) throws Exception{
 		return callProcedure(query_, resultSetType_, _defaultResultSetConcurrency);
 	}
 	/**
 	 * 프로시져를 호출합니다.
 	 * 
 	 * @param query_ 쿼리
-	 * @return 성공여부
+	 * @return JGDBProcedureResult 프로시져결과
 	 */
-	public boolean callProcedure(JGDBQuery query_) throws Exception{
+	public JGDBProcedureResult callProcedure(JGDBQuery query_) throws Exception{
 		return callProcedure(query_, _defaultResultSetType);
 	}
 	
